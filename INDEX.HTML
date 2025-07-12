@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Juega bingo virtual con El Premio Dorado. Personaliza, marca y descarga tus cartones en vivo.">
+    <meta name="keywords" content="bingo, cartones, virtual, El Premio Dorado, calculadora">
+    <title>El Premio Dorado - Ver mi Cartón (Versión Final Optimizada)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-color: linear-gradient(135deg, #1a120b, #3c2a1e, #1a120b, #3c2a1e);
+            --text-color: white;
+            --input-bg: rgba(255, 255, 255, 0.1);
+            --input-text: white;
+            --button-bg: linear-gradient(to right, #FFD700, #D4AF37);
+            --button-text: black;
+            --border-color: white;
+            --jugar-bg: linear-gradient(to right, #1a120b, #3c2a1e);
+            --jugar-border: #FFD700;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #FFDB58, #1C1C1C, #191970, #4169E1, #FFDB58);
+            color: var(--text-color);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .page-wrapper {
+            width: 100%;
+            max-width: 1400px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .titulo {
+            font-size: 70px;
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px #000, -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000, 0 0 30px rgba(255, 215, 0, var(--glow-opacity, 0.8));
+            white-space: nowrap;
+            animation: float 3.5s ease-in-out infinite, shine 2.5s linear infinite;
+            transform: translateZ(0);
+            will-change: transform, text-shadow;
+        }
+
+        @keyframes shine {
+            0%, 100% { --glow-opacity: 0.8; }
+            50% { --glow-opacity: 1; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
+
+        .buscador {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .buscador input, .buscador select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--input-text);
+            width: 200px;
+            font-weight: bold;
+        }
+
+        .buscador button, .botones-accion button, .control-juego button {
+            padding: 12px 24px;
+            font-size: 18px;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+            will-change: transform, box-shadow;
+        }
+
+        .buscador button:hover, .botones-accion button:hover, .control-juego button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px #FFD700, 0 0 20px #D4AF37;
+        }
+
+        .carton {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            width: 350px;
+            border: 4px solid #FFD700;
+            background: linear-gradient(to bottom, #FFFACD, #F5E050);
+            border-radius: 12px;
+            margin: 20px auto;
+            position: relative;
+            animation: particleFadeIn 0.8s ease-out forwards;
+            transition: transform 0.3s ease;
+            will-change: opacity, transform;
+        }
+        
+        @keyframes particleFadeIn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        .carton.tema-blanco-negro, .carton.tema-azul-oro, .carton.tema-purpura-rosa, 
+        .carton.tema-verde-esmeralda, .carton.tema-rojo-vino, .carton.tema-aurora-boreal, 
+        .carton.tema-crepusculo-dorado, .carton.tema-opalo-lunar, .carton.tema-jade-imperial, 
+        .carton.tema-rosa-medianoche, .carton.tema-cielo-estrellado, .carton.tema-vino-tinto, 
+        .carton.tema-perla-marina, .carton.tema-ambar-real, .carton.tema-esmeralda-nocturna {
+            position: relative;
+            z-index: 1;
+            transform: translateZ(0);
+        }
+
+        .carton.tema-blanco-negro::before, .carton.tema-azul-oro::before, .carton.tema-purpura-rosa::before, 
+        .carton.tema-verde-esmeralda::before, .carton.tema-rojo-vino::before, .carton.tema-aurora-boreal::before, 
+        .carton.tema-crepusculo-dorado::before, .carton.tema-opalo-lunar::before, .carton.tema-jade-imperial::before, 
+        .carton.tema-rosa-medianoche::before, .carton.tema-cielo-estrellado::before, .carton.tema-vino-tinto::before, 
+        .carton.tema-perla-marina::before, .carton.tema-ambar-real::before, .carton.tema-esmeralda-nocturna::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 8px;
+            box-shadow: inset 0 0 40px 15px rgba(255, 255, 255, 0.2);
+            animation: themeGlow 3s ease-in-out infinite;
+            will-change: opacity;
+            z-index: -1;
+        }
+        
+        .carton.tema-blanco-negro { background: linear-gradient(to bottom, #FFFFFF, #D3D3D3, #A9A9A9); }
+        .carton.tema-azul-oro { background: linear-gradient(to bottom, #1E3A8A, #3B82F6, #FFD700); }
+        .carton.tema-purpura-rosa { background: linear-gradient(to bottom, #6B7280, #EC4899, #F472B6); }
+        .carton.tema-verde-esmeralda { background: linear-gradient(to bottom, #065F46, #34D399, #10B981); }
+        .carton.tema-rojo-vino { background: linear-gradient(to bottom, #7F1D1D, #DC2626, #EF4444); }
+        .carton.tema-aurora-boreal { background: linear-gradient(135deg, #1E3A8A, #10B981, #6B7280, #A3E635); }
+        .carton.tema-crepusculo-dorado { background: linear-gradient(135deg, #FF4500, #FFD700, #FF8C00, #DC2626); }
+        .carton.tema-opalo-lunar { background: linear-gradient(135deg, #F3F4F6, #D1D5DB, #60A5FA, #E0E7FF); }
+        .carton.tema-jade-imperial { background: linear-gradient(135deg, #065F46, #34D399, #FFD700, #10B981); }
+        .carton.tema-rosa-medianoche { background: linear-gradient(135deg, #EC4899, #6B7280, #1E3A8A, #F472B6); }
+        .carton.tema-cielo-estrellado { background: linear-gradient(135deg, #1E3A8A, #3B82F6, #F3F4F6, #D1D5DB); }
+        .carton.tema-vino-tinto { background: linear-gradient(135deg, #7F1D1D, #DC2626, #FFD700, #EF4444); }
+        .carton.tema-perla-marina { background: linear-gradient(135deg, #2DD4BF, #F3F4F6, #3B82F6, #E0E7FF); }
+        .carton.tema-ambar-real { background: linear-gradient(135deg, #92400E, #FFD700, #FF8C00, #D97706); }
+        .carton.tema-esmeralda-nocturna { background: linear-gradient(135deg, #065F46, #1E3A8A, #FFD700, #10B981); }
+
+        @keyframes themeGlow {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .titulo-carton {
+            grid-column: span 5; text-align: center; font-size: 20px; color: #FFD700;
+            font-family: 'Playfair Display', serif; background: linear-gradient(to bottom, #8B0000, #FFA500);
+            border-radius: 8px 8px 0 0; padding: 5px; text-shadow: 1px 1px 2px black;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .encabezado {
+            grid-column: span 5; display: grid; grid-template-columns: repeat(5, 1fr);
+            font-weight: bold; font-size: 22px;
+        }
+
+        .letra {
+            border: 2px solid white; display: flex; align-items: center; justify-content: center;
+            height: 35px; font-size: 22px; background: linear-gradient(to bottom, #FFA500, #FFD700);
+            color: #000000; font-weight: bold;
+        }
+
+        .celda {
+            border: 2px solid white; display: flex; align-items: center; justify-content: center;
+            height: 45px; font-size: 22px; color: #000000; font-weight: bold;
+            background: rgba(255, 255, 255, 0.9); border-radius: 6px; position: relative; overflow: hidden;
+        }
+        
+        .celda-dolar { background: #FFD700; color: #000000; font-weight: bold; cursor: default; }
+        .celda.marcada-normal { background-color: #0000CD; color: white; }
+        .celda.marcada-figura { background-color: #006400; color: white; }
+        #cartonContainer { display: flex; flex-direction: column; align-items: center; width: 100%; position: relative; }
+        #cartonContainer.manual-marking-active .celda:not(.celda-dolar) { cursor: pointer; }
+        
+        .cartones-seleccionados { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 1200px; margin-top: 20px; }
+        .carton-seleccionado { display: flex; align-items: center; background: var(--input-bg); border-radius: 10px; padding: 10px; position: relative; width: 100%; }
+        .carton-seleccionado .carton { width: 350px; margin: 0; }
+        .carton-seleccionado .boton-descargar { margin-left: 20px; padding: 8px 16px; font-size: 14px; border: 2px solid var(--border-color); }
+        .boton-eliminar { position: absolute; top: 5px; right: 5px; background: #FF0000; color: white; border: 2px solid var(--border-color); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; }
+        .botones-accion { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+        #juego-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 25px; margin-top: 20px; width: 100%; flex-wrap: nowrap; }
+        .control-juego { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; width: 160px; background: var(--input-bg); padding: 15px; border-radius: 10px; border: 2px solid var(--border-color); flex-shrink: 0; }
+        .control-juego input { padding: 10px; font-size: 16px; border-radius: 8px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); width: 100%; font-weight: bold; }
+        #limpiarJuego { background: #FF0000; color: white; }
+        #deshacerJuego { background: #4682B4; color: white; }
+        #figuraBoton { background: #6a0dad; color: white; }
+        #calcBoton { background: linear-gradient(to right, #2c3e50, #34495e); color: white; }
+        
+        #jugarError { color: #FF4500; font-size: 14px; margin-top: 5px; width: 100%; text-align: center; }
+        #historialModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; align-items: center; justify-content: center; }
+        #historialContent { background: var(--bg-color); padding: 20px; border-radius: 10px; max-width: 600px; width: 90%; position: relative; max-height: 80vh; overflow-y: auto; }
+        #cerrarHistorial { position: absolute; top: 10px; right: 10px; background: #FF0000; color: white; border: 2px solid var(--border-color); border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; }
+        #historialContent ul { list-style: none; padding: 0; }
+        #historialContent li { padding: 10px; background: var(--input-bg); margin-bottom: 5px; border-radius: 5px; cursor: pointer; color: var(--text-color); border: 1px solid var(--border-color); }
+        #overlayFiguras { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+        #figurasContainer { background: var(--bg-color); padding: 25px; border-radius: 15px; border: 3px solid #FFD700; width: 90%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; }
+        #figurasContainer h3 { text-align: center; margin-bottom: 20px; font-family: 'Playfair Display', serif; color: #FFD700; font-size: 24px; }
+        #figurasList { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; overflow-y: auto; padding: 10px; flex-grow: 1; }
+        .figura-item { display: flex; flex-direction: column; align-items: center; padding: 10px; border: 2px solid #D4AF37; border-radius: 10px; background: rgba(0, 0, 0, 0.2); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; will-change: transform, box-shadow; }
+        .figura-item:hover, .figura-item.selected { transform: scale(1.05); box-shadow: 0 0 15px #FFD700; border-color: #FFD700; }
+        .figura-item label { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: white; text-align: center; }
+        .marco-figura-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; width: 100px; height: 100px; border: 1px solid white; background-color: #333; }
+        .celda-marco-preview { width: 100%; padding-bottom: 100%; background-color: #f0f0f0; border: 1px solid #555; position: relative; }
+        .celda-marco-preview.activa { background-color: #4CAF50; }
+        .celda-marco-preview.dolar { background-color: #FFD700; }
+        #figuraMostrada { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        #tituloFiguraMostrada { font-size: 18px; font-weight: bold; color: #FFD700; padding: 5px 10px; background: var(--input-bg); border-radius: 5px; border: 1px solid #FFD700; min-height: 38px; text-align: center; width: 170px; }
+        .marco-figura { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 170px; height: 170px; border: 2px solid #FFD700; background: rgba(0,0,0,0.3); padding: 2px; }
+        .celda-marco { width: 100%; height: 100%; background-color: white; }
+        .celda-marco.activa { background-color: #4CAF50; }
+        .celda-marco.dolar { background-color: #FFD700; }
+
+        /* Calculator Styles - Corrected and Optimized */
+        #calculatorOverlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85); z-index: 3000;
+            align-items: center; justify-content: center; padding: 15px;
+        }
+        #calculator {
+            background: linear-gradient(135deg, #2c3e50, #1a2833);
+            border-radius: 15px; padding: 20px;
+            border: 3px solid #FFD700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            width: 100%; max-width: 380px; position: relative;
+        }
+        .calculator-display {
+            background: var(--input-bg); border: 2px solid #FFD700;
+            border-radius: 10px; padding: 10px; margin-bottom: 15px;
+        }
+        #calcDisplay {
+            width: 100%; background: transparent; border: none;
+            color: white; font-size: 40px; text-align: right;
+            font-family: 'Roboto', sans-serif; height: 55px; font-weight: bold;
+        }
+        .calculator-keys {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        }
+        .calculator-keys button {
+            padding: 18px 10px; font-size: 20px; border-radius: 10px;
+            border: 2px solid transparent; cursor: pointer;
+            background: rgba(255, 255, 255, 0.1); color: white;
+            font-weight: bold; transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .calculator-keys button:hover {
+            background: rgba(255, 255, 255, 0.2); border-color: #D4AF37;
+        }
+        .calculator-keys button.operator { background: #D4AF37; color: black; }
+        .calculator-keys button.equals { background: #FFD700; color: black; }
+        /* Corrected: Button classes for specific styling */
+        .calculator-keys button.clear-btn { background: #c0392b; color: white; }
+        .calculator-keys button.backspace-btn { background: #e67e22; color: white; }
+        /* Corrected: Font size for specific buttons */
+        .calculator-keys button.small-text-btn { font-size: 16px; font-weight: bold; }
+        
+        #cerrarCalculadora {
+            position: absolute; top: -15px; right: -15px; background: #c0392b; color: white;
+            border: 2px solid var(--border-color); border-radius: 50%;
+            width: 35px; height: 35px; cursor: pointer; font-weight: bold;
+            font-size: 18px; display: flex; align-items: center; justify-content: center;
+        }
+        
+        @media (min-width: 768px) {
+            .titulo { font-size: 85px; } .carton { width: 450px; } .celda { height: 60px; font-size: 28px; }
+            .letra { height: 50px; font-size: 28px; } .titulo-carton { font-size: 24px; }
+            .control-juego { width: 220px; } .marco-figura { width: 220px; height: 220px; }
+            #tituloFiguraMostrada { width: 220px; font-size: 20px; }
+        }
+        @media (max-width: 600px) {
+            .titulo { font-size: 45px; }
+            .buscador input, .buscador select { width: 150px; font-size: 14px; }
+            .buscador button, .botones-accion button, .control-juego button { padding: 8px 16px; font-size: 14px; }
+            .control-juego input { width: 100%; font-size: 14px; } 
+            #juego-wrapper { flex-wrap: wrap; justify-content: center;} 
+            .carton { width: 300px; } .celda, .letra { height: 40px; font-size: 16px; }
+            .titulo-carton { font-size: 18px; } .carton-seleccionado .carton { width: 300px; }
+            .carton-seleccionado .boton-descargar { padding: 6px 12px; font-size: 12px; } .control-juego { width: 160px; }
+        }
+        @media (max-width: 400px) {
+            .carton { width: 250px; } .celda, .letra { height: 35px; font-size: 14px; }
+            .carton-seleccionado .carton { width: 250px; } .control-juego { width: 160px; }
+            /* Responsive adjustments for calculator */
+            #calcDisplay { font-size: 34px; height: 50px; }
+            .calculator-keys button { padding: 15px 8px; font-size: 18px; }
+            .calculator-keys button.small-text-btn { font-size: 14px; }
+        }
+        @media (min-width: 1200px) {
+            .cartones-seleccionados { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); }
+        }
+        @media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce) {
+            .carton, .titulo, button::after { animation: none; transition: none; }
+            #particle-canvas { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="page-wrapper">
+        <h1 class="titulo">El Premio Dorado</h1>
+        <div class="buscador">
+            <input type="number" id="numeroBuscar" placeholder="Número de cartón" min="1" max="200000" aria-label="Número de cartón a buscar">
+            <select id="tema" aria-label="Seleccionar tema del cartón">
+                <option value="default">Tema Predeterminado</option>
+                <option value="blanco-negro">Blanco y Negro</option>
+                <option value="azul-oro">Azul y Oro</option>
+                <option value="purpura-rosa">Púrpura y Rosa</option>
+                <option value="verde-esmeralda">Verde Esmeralda</option>
+                <option value="rojo-vino">Rojo Vino</option>
+                <option value="aurora-boreal">Aurora Boreal</option>
+                <option value="crepusculo-dorado">Crepúsculo Dorado</option>
+                <option value="opalo-lunar">Ópalo Lunar</option>
+                <option value="jade-imperial">Jade Imperial</option>
+                <option value="rosa-medianoche">Rosa de Medianoche</option>
+                <option value="cielo-estrellado">Cielo Estrellado</option>
+                <option value="vino-tinto">Vino Tinto</option>
+                <option value="perla-marina">Perla Marina</option>
+                <option value="ambar-real">Ámbar Real</option>
+                <option value="esmeralda-nocturna">Esmeralda Nocturna</option>
+            </select>
+            <button class="glow" onclick="throttle(mostrarCarton, 100)()" aria-label="Buscar cartón">Buscar</button>
+            <button class="glow" onclick="throttle(toggleCartonesMultiples, 100)()" aria-label="Generar múltiples cartones">Cartones Múltiples</button>
+            <button class="glow boton-jugar" onclick="throttle(jugar, 100)()" aria-label="Jugar al bingo">Jugar</button>
+            <button class="glow boton-historial" onclick="throttle(mostrarHistorial, 100)()" aria-label="Ver historial de cartones">Historial</button>
+            <div id="campoMultiples" style="display: none;">
+                <input type="number" id="cantidadCartones" placeholder="Cantidad (máx. 5)" min="1" max="5" value="1" aria-label="Cantidad de cartones a generar">
+                <button class="glow" onclick="throttle(agregarCartonesMultiples, 100)()" aria-label="Añadir cartones múltiples">Añadir</button>
+            </div>
+            <div id="mensajeError"></div>
+        </div>
+        <div id="cartonContainer"></div>
+        <div class="botones-accion">
+            <button class="glow" id="descargarBoton" style="display: none;" aria-label="Descargar cartón como imagen">Descargar</button>
+        </div>
+        <div class="cartones-seleccionados" id="cartonesSeleccionados"></div>
+        <div id="historialModal">
+            <div id="historialContent">
+                <button id="cerrarHistorial" aria-label="Cerrar historial">X</button>
+                <h3>Historial de Cartones</h3>
+                <ul id="listaHistorial"></ul>
+            </div>
+        </div>
+        <div id="overlayFiguras">
+            <div id="figurasContainer">
+                <h3>Seleccionar Figura</h3>
+                <div id="figurasList"></div>
+                <div class="botones-accion">
+                    <button class="glow" onclick="mostrarFiguraSeleccionada()">Mostrar Figura</button>
+                    <button class="glow" onclick="document.getElementById('overlayFiguras').style.display = 'none'">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="calculatorOverlay">
+        <div id="calculator">
+            <div class="calculator-display">
+                <input type="text" id="calcDisplay" readonly placeholder="0">
+            </div>
+            <div class="calculator-keys">
+                <button class="clear-btn small-text-btn" onclick="clearDisplay()">LIMPIAR</button>
+                <button class="backspace-btn small-text-btn" onclick="backspace()">BORRAR</button>
+                <button onclick="appendToDisplay('%')">%</button>
+                <button class="operator" onclick="appendToDisplay('/')">÷</button>
+
+                <button onclick="appendToDisplay('7')">7</button>
+                <button onclick="appendToDisplay('8')">8</button>
+                <button onclick="appendToDisplay('9')">9</button>
+                <button class="operator" onclick="appendToDisplay('*')">×</button>
+
+                <button onclick="appendToDisplay('4')">4</button>
+                <button onclick="appendToDisplay('5')">5</button>
+                <button onclick="appendToDisplay('6')">6</button>
+                <button class="operator" onclick="appendToDisplay('-')">−</button>
+                
+                <button onclick="appendToDisplay('1')">1</button>
+                <button onclick="appendToDisplay('2')">2</button>
+                <button onclick="appendToDisplay('3')">3</button>
+                <button class="operator" onclick="appendToDisplay('+')">+</button>
+
+                <button onclick="calculateSqrt()">√</button>
+                <button onclick="appendToDisplay('0')">0</button>
+                <button onclick="appendToDisplay('.')">.</button>
+                <button class="equals" onclick="calculateResult()">=</button>
+            </div>
+            <button id="cerrarCalculadora" onclick="cerrarCalculadora()">X</button>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        const cartonContainer = document.getElementById('cartonContainer');
+        const cartonesSeleccionadosContainer = document.getElementById('cartonesSeleccionados');
+        const descargarBoton = document.getElementById('descargarBoton');
+        const numeroBuscarInput = document.getElementById('numeroBuscar');
+        const temaSelect = document.getElementById('tema');
+        const campoMultiplesDiv = document.getElementById('campoMultiples');
+        const historialModal = document.getElementById('historialModal');
+        const listaHistorialUl = document.getElementById('listaHistorial');
+        const overlayFiguras = document.getElementById('overlayFiguras');
+        const figurasListDiv = document.getElementById('figurasList');
+        const calculatorOverlay = document.getElementById('calculatorOverlay');
+        const calcDisplay = document.getElementById('calcDisplay');
+
+        const patrones = {
+            'x': [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [0, 4], [1, 3], [3, 1], [4, 0]], 'EXPLOSIÓN': [[0, 0], [1, 2], [2, 1], [2, 2], [2, 3], [3, 2], [4, 4], [0, 4], [4, 0]], 'B': [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 4], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]], '+': [[2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [0, 2], [1, 2], [3, 2], [4, 2]], 'I': [[0, 1], [0, 2], [0, 3], [1, 2], [2, 2], [3, 2], [4, 1], [4, 2], [4, 3]], 'N': [[0, 0], [1, 0], [1, 1], [2, 0], [2, 2], [2, 4], [3, 0], [3, 3], [3, 4], [4, 0], [0, 4], [1, 4], [4, 0], [4, 4]], 'G': [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [2, 0], [2, 2], [2, 3], [2, 4], [3, 0], [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]], 'O': [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 4], [2, 0], [2, 2], [2, 4], [3, 0], [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]], '1': [[1, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 1], [4, 2], [4, 3]], 'TROMPO': [[0, 1], [0, 2], [0, 3], [1, 2], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 1], [3, 2], [3, 3], [4, 2]], 'TORTUGA': [[0, 2], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [2, 1], [2, 2], [2, 3], [3, 1], [3, 2], [3, 3], [4, 0], [4, 4]], 'AJEDREZ': [[0, 0], [0, 2], [0, 4], [1, 1], [1, 3], [2, 0], [2, 2], [2, 4], [3, 1], [3, 3], [4, 0], [4, 2], [4, 4]], 'COPO DE NIEVE': [[0, 0], [0, 2], [0, 4], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 1], [3, 2], [3, 3], [4, 0], [4, 2], [4, 4]], '2': [[0, 1], [0, 2], [0, 3], [1, 3], [2, 2], [3, 1], [4, 1], [4, 2], [4, 3]], '3': [[0, 1], [0, 2], [0, 3], [1, 3], [2, 2], [2, 3], [3, 3], [4, 1], [4, 2], [4, 3]], 'SOMBRERO DE BRUJA': [[0, 2], [1, 2], [2, 1], [2, 2], [2, 3], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]], '4': [[0, 1], [0, 3], [1, 3], [1, 1], [2, 1], [2, 2], [2, 3], [3, 3], [4, 3]], '5': [[0, 1], [0, 2], [0, 3], [1, 1], [2, 1], [2, 2], [2, 3], [3, 3], [4, 1], [4, 2], [4, 3]], '6': [[0, 1], [0, 2], [0, 3], [1, 1], [2, 1], [2, 2], [2, 3], [3, 1], [3, 3], [4, 1], [4, 2], [4, 3]], '7': [[0, 1], [0, 2], [0, 3], [1, 1], [1, 3], [2, 3], [3, 3], [4, 3]], '8': [[0, 1], [0, 2], [0, 3], [1, 1], [1, 3], [2, 1], [2, 2], [2, 3], [3, 1], [3, 3], [4, 1], [4, 2], [4, 3]], '9': [[0, 1], [0, 2], [0, 3], [1, 1], [1, 3], [2, 1], [2, 2], [2, 3], [3, 3], [4, 3]], '0': [[0, 1], [0, 2], [0, 3], [1, 1], [1, 3], [2, 1], [2, 3], [3, 1], [3, 3], [4, 1], [4, 2], [4, 3]], 'COMODIN': [[1, 1], [1, 2], [1, 3], [2, 1], [2, 3], [3, 1], [3, 2], [3, 3]], '10': [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [0, 3], [4, 3]], 'SOPORTES': [[0, 0], [0, 1], [0, 3], [0, 4], [1, 0], [1, 4], [3, 0], [3, 4], [4, 0], [4, 1], [4, 3], [4, 4]], '4 ESQUINAS': [[0, 0], [0, 4], [4, 0], [4, 4]], 'FLECHA': [[0, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 3], [4, 2]], 'AVIÓN': [[0, 3], [1, 0], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 0], [3, 3], [4, 3]], 'COMETA': [[0, 0], [0, 1], [1, 0], [1, 1], [2, 2], [3, 3], [4, 4]], 'CASA': [[0, 2], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 1], [3, 2], [3, 3], [4, 1], [4, 2], [4, 3]], 'DOBLE MARCO': [[0, 0], [0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 2], [3, 4], [4, 2], [4, 3], [4, 4]], 'DOBLE C': [[0, 0], [0, 1], [1, 0], [2, 0], [2, 1], [2, 3], [2, 4], [3, 3], [4, 3], [4, 4]], 'ÁRBOL': [[0, 2], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 2], [4, 2]], 'ROMBO': [[0, 2], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 1], [3, 2], [3, 3], [4, 2]], 'MOÑO': [[0, 0], [0, 4], [1, 0], [1, 1], [1, 4], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3],[2, 4], [3, 0], [3, 1], [3, 3], [3, 4], [4, 0], [4, 4]], 'CORAZÓN': [[0, 1], [0, 3], [1, 0], [1, 2], [1, 4], [2, 0], [2, 4], [3, 1], [3, 3], [4, 2]], 'L': [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [4, 2], [4, 3]], 'ESCALERA': [[0, 1], [0, 3], [1, 1], [1, 2], [1, 3], [2, 1], [2, 3], [3, 1], [3, 2], [3, 3], [4, 1], [4, 3]], 'T': [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [2, 2], [3, 2], [4, 2]], 'F': [[0, 0], [0, 1], [0, 2],  [0, 3], [0, 4], [1, 0], [2, 0], [2, 2], [2, 3], [2, 1], [3, 0], [4, 0]], 'COPA CHAMPAN': [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 1], [1, 2], [1, 3], [2, 2], [3, 2], [4, 1], [4, 2], [4, 3]], 'B-N-O': [[0, 0], [0, 2], [0, 4], [1, 0], [1, 2], [1, 4], [2, 0], [2, 2], [2, 4], [3, 0], [3, 2], [3, 4], [4, 0], [4, 2], [4, 4]],'MARCO ROTO': [[0, 0], [0, 2], [0, 4], [2, 0], [2, 2], [2, 4], [4, 0], [4, 2], [4, 4]],'CASCADA': [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2], [2, 2], [3, 2], [3, 3], [3, 4], [4, 3], [4, 4]],'ANCLA': [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [2, 2], [3, 0], [3, 2], [3, 4], [4, 1], [4, 2], [4, 3]],'VELERO': [[0, 2], [1, 2], [1, 3], [2, 2], [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, 1], [4, 2], [4, 3]], 'DIANA': [[0, 1], [0, 2], [0, 3], [1, 0], [1, 4], [2, 0], [2, 4], [3, 0], [3, 4], [4, 1], [4, 2], [4, 3]],'CACTUS': [[0, 0], [0, 2], [0, 4], [1, 0], [1, 2], [1, 4], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 2], [4, 2]],'HACHA': [[0, 2], [0, 4], [1, 1], [1, 2], [1, 3], [1, 4], [2, 2], [2, 4], [3, 4], [4, 4]],'CANASTA': [[0, 2], [1, 1], [1, 3], [2, 0], [2, 4], [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]], 'PARAGUAS': [[0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [2, 2], [3, 0], [3, 2], [4, 0], [4, 1], [4, 2]],'$ DOLAR $': [[0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 2], [2, 1], [2, 2], [2, 3], [3, 2], [3, 4], [4, 0], [4, 1], [4, 2], [4, 3]],'ANTORCHA': [[0, 2], [1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [2, 3], [3, 2], [4, 2]],'HUESO': [[1, 0], [1, 4], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [3, 0], [3, 4]],'CRUZ EVASTICAS': [[0, 0], [0, 1], [0, 2], [0, 4], [1, 4], [1, 2], [2, 0], [2, 2], [2, 1], [2, 3], [2, 4], [3, 0], [3, 2], [4, 0], [4, 2], [4, 3], [4, 4]],'C LOCA': [[0, 0], [0, 1], [0, 2], [0, 4], [0, 3], [1, 4], [2, 4], [3, 4], [4, 1], [4, 0], [4, 2], [4, 3], [4, 4]],'I-N-G': [[0, 1], [0, 2], [0, 3], [1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [2, 3], [3, 1], [3, 2], [3, 3], [4, 1], [4, 2], [4, 3]],'L LOCA': [[0, 0], [0, 1], [0, 2], [0, 4], [0, 3], [1, 4], [2, 4], [3, 4], [4, 4]],'E': [[0, 0], [0, 1], [0, 2], [0, 4], [0, 3], [1, 0], [2, 0], [2, 2], [2, 1], [2, 3], [3, 0], [4, 1], [4, 0], [4, 2], [4, 3], [4, 4]],
+        };
+        
+        let figuraSeleccionada = null;
+        let figuraSeleccionadaTemp = null;
+        let figuraCoordenadasSet = new Set();
+        let marcasHistorial = [];
+        let manualMarkingEnabled = false;
+
+        const throttle = (func, wait) => {
+            let timeout;
+            return function(...args) {
+                const later = () => { clearTimeout(timeout); func.apply(this, args); };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        };
+
+        const seededRandom = (seed) => { let x = Math.sin(seed + 12345) * 10000; return x - Math.floor(x); };
+        
+        // Optimization: Memoization cache for generated cartons
+        const cartonCache = new Map();
+
+        function getUniqueNumbersFromRange(min, max, count, seedBase) {
+            const numbers = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+            const result = [];
+            let seed = seedBase;
+            for (let i = 0; i < count; i++) {
+                seed++;
+                const index = Math.floor(seededRandom(seed) * numbers.length);
+                result.push(numbers.splice(index, 1)[0]);
+            }
+            return result;
+        }
+
+        function generarCarton(id) {
+            if (cartonCache.has(id)) {
+                return cartonCache.get(id);
+            }
+            const carton = [];
+            const rangos = [{ min: 1, max: 15 }, { min: 16, max: 30 }, { min: 31, max: 45 }, { min: 46, max: 60 }, { min: 61, max: 75 }];
+            for (let col = 0; col < 5; col++) {
+                const seedBase = id * 5 + col * 1000;
+                carton.push(getUniqueNumbersFromRange(rangos[col].min, rangos[col].max, 5, seedBase));
+            }
+            carton[2][2] = '$';
+            const generatedCarton = { carton, id };
+            cartonCache.set(id, generatedCarton);
+            return generatedCarton;
+        }
+
+        function descargarCarton(cartonElement, id, tipo = 'Cartón') {
+            const originalAnimation = cartonElement.style.animation;
+            cartonElement.style.animation = 'none';
+            try {
+                html2canvas(cartonElement, {
+                    scale: 3, useCORS: true, backgroundColor: '#FFFACD', logging: false
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `${tipo}_${id}.png`;
+                    link.href = canvas.toDataURL('image/png', 0.98);
+                    link.click();
+                }).finally(() => {
+                    cartonElement.style.animation = originalAnimation;
+                });
+            } catch (error) {
+                console.error('Error al descargar el cartón:', error);
+                alert('Hubo un error al intentar descargar el cartón.');
+                cartonElement.style.animation = originalAnimation;
+            }
+        }
+
+        function guardarCartones() {
+            const cartones = Array.from(document.querySelectorAll('.carton')).map(carton => ({
+                id: parseInt(carton.dataset.id),
+                tema: Array.from(carton.classList).find(cls => cls.startsWith('tema-'))?.replace('tema-', '') || 'default',
+                marked: Array.from(carton.querySelectorAll('.celda')).map(celda => celda.classList.contains('marcada-normal') || celda.classList.contains('marcada-figura'))
+            }));
+            localStorage.setItem('cartonesGuardados', JSON.stringify(cartones));
+        }
+
+        function _crearCartonDOM(id, tema, cartonData) {
+            const fragment = document.createDocumentFragment();
+            const divCarton = document.createElement('div');
+            divCarton.className = `carton ${tema !== 'default' ? `tema-${tema}` : ''}`;
+            divCarton.dataset.id = id;
+            const tituloCarton = document.createElement('div');
+            tituloCarton.className = 'titulo-carton';
+            tituloCarton.textContent = `Cartón N°${id}`;
+            divCarton.appendChild(tituloCarton);
+            const encabezado = document.createElement('div');
+            encabezado.className = 'encabezado';
+            ['B', 'I', 'N', 'G', 'O'].forEach(letra => {
+                const letraDiv = document.createElement('div');
+                letraDiv.className = 'letra';
+                letraDiv.textContent = letra;
+                encabezado.appendChild(letraDiv);
+            });
+            divCarton.appendChild(encabezado);
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const celda = document.createElement('div');
+                    celda.className = 'celda';
+                    celda.textContent = cartonData.carton[col][row];
+                    celda.dataset.row = row;
+                    celda.dataset.col = col;
+                    if (celda.textContent === '$') celda.classList.add('celda-dolar');
+                    divCarton.appendChild(celda);
+                }
+            }
+            fragment.appendChild(divCarton);
+            return fragment;
+        }
+        
+        function marcarCelda(celda) {
+            if (celda.textContent === '$' || celda.classList.contains('marcada-normal') || celda.classList.contains('marcada-figura')) {
+                return;
+            }
+            const row = celda.dataset.row;
+            const col = celda.dataset.col;
+            const esParteDeFigura = figuraCoordenadasSet.has(`${row},${col}`);
+            
+            requestAnimationFrame(() => {
+                celda.classList.add(esParteDeFigura ? 'marcada-figura' : 'marcada-normal');
+            });
+
+            const carton = celda.closest('.carton');
+            const cartonId = parseInt(carton.dataset.id);
+            marcasHistorial.push({ cartonId, col, row, type: 'manual' });
+            guardarCartones();
+        }
+
+        function mostrarCarton() {
+            const numeroBuscar = numeroBuscarInput.value.trim();
+            const index = parseInt(numeroBuscar);
+            if (!numeroBuscar || index < 1 || index > 200000) { alert('Número de cartón inválido. Debe estar entre 1 y 200,000.'); return; }
+            cartonContainer.innerHTML = '';
+            const cartonData = generarCarton(index);
+            const tema = temaSelect.value;
+            const cartonFragment = _crearCartonDOM(index, tema, cartonData);
+            cartonContainer.appendChild(cartonFragment);
+            descargarBoton.style.display = 'inline-block';
+            descargarBoton.onclick = () => descargarCarton(cartonContainer.querySelector('.carton'), index);
+            actualizarHistorial(index, tema);
+            manualMarkingEnabled = false;
+        }
+
+        function toggleCartonesMultiples() { campoMultiplesDiv.style.display = campoMultiplesDiv.style.display === 'none' ? 'flex' : 'none'; }
+
+        function agregarCartonesMultiples() {
+            const cantidad = parseInt(document.getElementById('cantidadCartones').value) || 1;
+            if (cantidad < 1 || cantidad > 5) { alert('La cantidad debe estar entre 1 y 5.'); return; }
+            const tema = temaSelect.value;
+            const startId = parseInt(numeroBuscarInput.value) || 1;
+            const mainCartonNode = document.querySelector('#cartonContainer .carton');
+            if (mainCartonNode) {
+                 const mainCartonId = parseInt(mainCartonNode.dataset.id);
+                 if (mainCartonId >= startId && mainCartonId < startId + cantidad) {
+                     cartonContainer.innerHTML = '';
+                     descargarBoton.style.display = 'none';
+                 }
+            }
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < cantidad; i++) {
+                const cartonId = startId + i;
+                if (document.querySelector(`.carton[data-id="${cartonId}"]`)) continue;
+                const cartonData = generarCarton(cartonId);
+                const cartonNode = _crearCartonDOM(cartonId, tema, cartonData).querySelector('.carton');
+                const divSeleccionado = document.createElement('div');
+                divSeleccionado.className = 'carton-seleccionado';
+                const botonDescargar = document.createElement('button');
+                botonDescargar.className = 'boton-descargar glow';
+                botonDescargar.textContent = 'Descargar';
+                botonDescargar.onclick = () => descargarCarton(cartonNode, cartonId);
+                const botonEliminar = document.createElement('button');
+                botonEliminar.className = 'boton-eliminar';
+                botonEliminar.textContent = 'X';
+                botonEliminar.onclick = () => { divSeleccionado.remove(); guardarCartones(); };
+                divSeleccionado.appendChild(cartonNode);
+                divSeleccionado.appendChild(botonDescargar);
+                divSeleccionado.appendChild(botonEliminar);
+                fragment.appendChild(divSeleccionado);
+                actualizarHistorial(cartonId, tema);
+            }
+            cartonesSeleccionadosContainer.appendChild(fragment);
+            guardarCartones();
+        }
+
+        function actualizarHistorial(cartonId, tema) {
+            let historial = JSON.parse(localStorage.getItem('historialCartones')) || [];
+            if (cartonId && !historial.some(item => item.id === cartonId)) {
+                historial.unshift({ id: cartonId, tema: tema, fecha: new Date().toLocaleString() });
+                historial = historial.slice(0, 20);
+                localStorage.setItem('historialCartones', JSON.stringify(historial));
+            }
+            listaHistorialUl.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            historial.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `Cartón N°${item.id} - Tema: ${item.tema} - ${item.fecha}`;
+                li.onclick = () => {
+                    numeroBuscarInput.value = item.id;
+                    temaSelect.value = item.tema;
+                    mostrarCarton();
+                    historialModal.style.display = 'none';
+                };
+                fragment.appendChild(li);
+            });
+            listaHistorialUl.appendChild(fragment);
+        }
+        function mostrarHistorial() { historialModal.style.display = 'flex'; }
+
+        function crearControlJuego() {
+            const controlJuego = document.createElement('div');
+            controlJuego.className = 'control-juego';
+            controlJuego.id = 'controlJuego';
+            controlJuego.innerHTML = `<input type="text" id="jugarInput" placeholder="Ej: B1, I16, N32" aria-label="Ingresar número de bingo"><button class="glow" onclick="marcarNumeroThrottled()" aria-label="Marcar número">Marcar</button><button class="glow" id="limpiarJuego" onclick="limpiarJuegoThrottled()" aria-label="Limpiar marcas">Limpiar</button><button class="glow" id="deshacerJuego" onclick="deshacerMarcaThrottled()" aria-label="Deshacer marca">Deshacer</button><button class="glow" id="figuraBoton" onclick="mostrarFigurasThrottled()" aria-label="Seleccionar figura">Figura</button><button class="glow" id="calcBoton" onclick="abrirCalculadoraThrottled()" aria-label="Abrir calculadora">CALCULADORA</button><div id="jugarError"></div>`;
+            return controlJuego;
+        }
+
+        function jugar() {
+            if (!document.querySelector('.carton')) { alert("Primero busca o genera un cartón."); return; }
+            if (document.getElementById('juego-wrapper')) return;
+            const juegoWrapper = document.createElement('div');
+            juegoWrapper.id = 'juego-wrapper';
+            juegoWrapper.appendChild(crearControlJuego());
+            const figuraDisplay = document.createElement('div');
+            figuraDisplay.id = 'figuraMostrada';
+            juegoWrapper.appendChild(figuraDisplay);
+            document.querySelector('.buscador').insertAdjacentElement('afterend', juegoWrapper);
+            manualMarkingEnabled = true;
+            cartonContainer.classList.add('manual-marking-active');
+            renderFiguraMostrada();
+            descargarBoton.style.display = 'none';
+        }
+
+        function marcarNumero() {
+            const inputEl = document.getElementById('jugarInput');
+            const input = inputEl.value.trim().toUpperCase();
+            const error = document.getElementById('jugarError');
+            if (!/^[BINGO]([1-9]|[1-6][0-9]|7[0-5])$/.test(input)) { error.textContent = 'Formato inválido. Ej: B1, I16'; return; }
+            const letra = input[0];
+            const numero = parseInt(input.slice(1));
+            const colIndex = 'BINGO'.indexOf(letra);
+            error.textContent = '';
+            
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.carton').forEach(carton => {
+                    const cartonId = parseInt(carton.dataset.id);
+                    carton.querySelectorAll(`.celda[data-col='${colIndex}']`).forEach(celda => {
+                        if (celda.textContent == numero && !celda.classList.contains('marcada-normal') && !celda.classList.contains('marcada-figura')) {
+                            const row = celda.dataset.row;
+                            const esParteDeFigura = figuraCoordenadasSet.has(`${row},${colIndex}`);
+                            celda.classList.add(esParteDeFigura ? 'marcada-figura' : 'marcada-normal');
+                            marcasHistorial.push({ cartonId, col: colIndex, row, type: 'auto' });
+                        }
+                    });
+                });
+                guardarCartones();
+            });
+
+            inputEl.value = '';
+        }
+
+        function deshacerMarca() {
+            if (marcasHistorial.length === 0) return;
+            const ultimaMarca = marcasHistorial.pop();
+            const { cartonId, col, row } = ultimaMarca;
+            const carton = document.querySelector(`.carton[data-id="${cartonId}"]`);
+            if (carton) {
+                const celda = carton.querySelector(`.celda[data-col='${col}'][data-row='${row}']`);
+                if (celda) {
+                    requestAnimationFrame(() => {
+                        celda.classList.remove('marcada-normal', 'marcada-figura');
+                    });
+                }
+            }
+            guardarCartones();
+        }
+
+        function limpiarJuego() {
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.carton .celda').forEach(c => c.classList.remove('marcada-normal', 'marcada-figura'));
+            });
+            marcasHistorial = [];
+            guardarCartones();
+            const jugarInput = document.getElementById('jugarInput');
+            if (jugarInput) jugarInput.value = '';
+            const jugarError = document.getElementById('jugarError');
+            if (jugarError) jugarError.textContent = '';
+            figuraSeleccionada = null;
+            figuraSeleccionadaTemp = null;
+            figuraCoordenadasSet.clear();
+            renderFiguraMostrada();
+            manualMarkingEnabled = false;
+            cartonContainer.classList.remove('manual-marking-active');
+        }
+
+        function mostrarFiguras() {
+            figurasListDiv.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            Object.keys(patrones).forEach(nombreFigura => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'figura-item';
+                if (nombreFigura === figuraSeleccionadaTemp) itemDiv.classList.add('selected');
+                itemDiv.onclick = () => {
+                    const currentSelected = figurasListDiv.querySelector('.selected');
+                    if(currentSelected) currentSelected.classList.remove('selected');
+                    itemDiv.classList.add('selected');
+                    figuraSeleccionadaTemp = nombreFigura;
+                };
+                const celdasPreview = Array.from({length: 25}).map((_, i) => {
+                    const r = Math.floor(i/5), c = i % 5;
+                    let cls = 'celda-marco-preview';
+                    if (r === 2 && c === 2) cls += ' dolar';
+                    if (patrones[nombreFigura].some(pos => pos[0] === r && pos[1] === c)) cls += ' activa';
+                    return `<div class="${cls}"></div>`;
+                }).join('');
+                itemDiv.innerHTML = `<label>${nombreFigura.toUpperCase()}</label><div class="marco-figura-preview">${celdasPreview}</div>`;
+                fragment.appendChild(itemDiv);
+            });
+            figurasListDiv.appendChild(fragment);
+            overlayFiguras.style.display = 'flex';
+        }
+
+        function mostrarFiguraSeleccionada() {
+            figuraSeleccionada = figuraSeleccionadaTemp;
+            figuraCoordenadasSet.clear();
+            if (figuraSeleccionada && patrones[figuraSeleccionada]) {
+                for (const pos of patrones[figuraSeleccionada]) {
+                    figuraCoordenadasSet.add(`${pos[0]},${pos[1]}`);
+                }
+            }
+            renderFiguraMostrada();
+            overlayFiguras.style.display = 'none';
+        }
+
+        function renderFiguraMostrada() {
+            const container = document.getElementById('figuraMostrada');
+            if (!container) return;
+            if (!figuraSeleccionada) { container.innerHTML = ''; return; }
+            const celdasMarco = Array.from({length:25}).map((_,i) => {
+                const r = Math.floor(i/5), c = i % 5;
+                let cls = 'celda-marco';
+                if (r === 2 && c === 2) cls += ' dolar';
+                if (figuraCoordenadasSet.has(`${r},${c}`)) cls += ' activa';
+                return `<div class="${cls}"></div>`;
+            }).join('');
+            container.innerHTML = `<div id="tituloFiguraMostrada">${figuraSeleccionada.toUpperCase()}</div><div class="marco-figura">${celdasMarco}</div>`;
+        }
+
+        // --- Calculator Functions ---
+        function abrirCalculadora() { calculatorOverlay.style.display = 'flex'; }
+        function cerrarCalculadora() { calculatorOverlay.style.display = 'none'; }
+        function appendToDisplay(value) {
+            if (calcDisplay.value === 'Error') clearDisplay();
+            calcDisplay.value += value;
+        }
+        function clearDisplay() { calcDisplay.value = ''; }
+        function backspace() { calcDisplay.value = calcDisplay.value.slice(0, -1); }
+        function calculateResult() {
+            let expression = calcDisplay.value;
+            if (!expression) return;
+            try {
+                expression = expression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+                expression = expression.replace(/([0-9.]+)%/g, '($1/100)');
+                if (/[^0-9.\/*\-+()% ]/g.test(expression)) { throw new Error("Caracteres inválidos"); }
+                const result = new Function('return ' + expression)();
+                calcDisplay.value = Number.isFinite(result) ? parseFloat(result.toPrecision(15)) : 'Error';
+            } catch (e) {
+                calcDisplay.value = 'Error';
+            }
+        }
+        function calculateSqrt() {
+            try {
+                calculateResult();
+                const currentValue = parseFloat(calcDisplay.value);
+                if (!isNaN(currentValue) && currentValue >= 0) {
+                    calcDisplay.value = Math.sqrt(currentValue);
+                } else if (currentValue < 0) {
+                    calcDisplay.value = 'Error';
+                }
+            } catch (e) {
+                calcDisplay.value = 'Error';
+            }
+        }
+        
+        function handleCartonCellClick(event) {
+            if (manualMarkingEnabled && event.target.matches('.celda:not(.celda-dolar)')) {
+                marcarCelda(event.target);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let particlesArray = [];
+            let animationFrameId;
+
+            function setCanvasSize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            setCanvasSize();
+
+            const PI2 = Math.PI * 2;
+            const COLOR_WHITE = '#FFF';
+
+            class FixedTwinklingStar {
+                 constructor() {
+                    this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2.5 + 1; this.phase = Math.random() * PI2;
+                    this.timeFactor = PI2 / (Math.random() * 2 + 3);
+                }
+                update(deltaTime) { this.phase += deltaTime * this.timeFactor; }
+                draw(context) {
+                    const glowValue = (Math.sin(this.phase) + 1) / 2;
+                    context.globalAlpha = 0.4 + (0.6 * glowValue); context.shadowBlur = 5 + (10 * glowValue);
+                    context.shadowColor = `rgba(255, 215, 0, ${glowValue})`;
+                    context.fillStyle = COLOR_WHITE; context.beginPath(); context.arc(this.x, this.y, this.size / 2, 0, PI2); context.fill();
+                }
+            }
+
+            function initParticles() {
+                particlesArray = [];
+                const starCount = Math.min(150, (canvas.width * canvas.height) / 12000);
+                for (let i = 0; i < starCount; i++) particlesArray.push(new FixedTwinklingStar());
+            }
+
+            let lastTime = 0;
+            function animateParticles(timestamp) {
+                const deltaTime = (timestamp - lastTime) / 1000 || 0; lastTime = timestamp;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < particlesArray.length; i++) {
+                    particlesArray[i].update(deltaTime); particlesArray[i].draw(ctx);
+                }
+                ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
+                animationFrameId = requestAnimationFrame(animateParticles);
+            }
+
+            function startAnimation() {
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                initParticles();
+                lastTime = performance.now();
+                animateParticles(lastTime);
+            }
+            startAnimation();
+
+            window.addEventListener('resize', throttle(() => { setCanvasSize(); startAnimation(); }, 250));
+            
+            cartonContainer.addEventListener('click', handleCartonCellClick);
+
+            localStorage.removeItem('historialCartones');
+            localStorage.removeItem('cartonesGuardados');
+            actualizarHistorial();
+
+            window.throttle = throttle; window.mostrarCarton = mostrarCarton;
+            window.toggleCartonesMultiples = toggleCartonesMultiples; window.agregarCartonesMultiples = agregarCartonesMultiples;
+            window.jugar = jugar; window.mostrarHistorial = mostrarHistorial;
+            window.marcarNumero = marcarNumero; window.limpiarJuego = limpiarJuego;
+            window.deshacerMarca = deshacerMarca; window.mostrarFiguras = mostrarFiguras;
+            window.mostrarFiguraSeleccionada = mostrarFiguraSeleccionada;
+            window.marcarNumeroThrottled = throttle(marcarNumero, 100);
+            window.limpiarJuegoThrottled = throttle(limpiarJuego, 100);
+            window.deshacerMarcaThrottled = throttle(deshacerMarca, 100);
+            window.mostrarFigurasThrottled = throttle(mostrarFiguras, 100);
+            document.getElementById('cerrarHistorial').onclick = () => { historialModal.style.display = 'none'; };
+
+            window.abrirCalculadora = abrirCalculadora; window.cerrarCalculadora = cerrarCalculadora;
+            window.abrirCalculadoraThrottled = throttle(abrirCalculadora, 100);
+            window.appendToDisplay = appendToDisplay; window.clearDisplay = clearDisplay;
+            window.backspace = backspace; window.calculateResult = calculateResult;
+            window.calculateSqrt = calculateSqrt;
+        });
+        
+    })();
+    </script>
+</body>
+</html>
